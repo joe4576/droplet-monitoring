@@ -34,8 +34,14 @@ async function get(path: string, token: string): Promise<unknown> {
     const response = await fetch(`${API}${path}`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(20_000),
-      redirect: 'error',
+      redirect: 'manual',
     })
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel()
+      throw new UpstreamError(
+        'DigitalOcean returned an unexpected redirect. The request was not followed.',
+      )
+    }
     if (!response.ok) {
       await response.body?.cancel()
       throw new UpstreamError(upstreamMessage(response.status))
