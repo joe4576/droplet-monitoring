@@ -4,16 +4,15 @@ import {
   type DashboardResponse,
 } from '../shared/types'
 import { loadDroplet } from './digitalocean'
-
-const headers = {
-  'Cache-Control': 'no-store',
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'same-origin',
-}
-
-function json(body: unknown, status = 200): Response {
-  return Response.json(body, { status, headers })
-}
+import {
+  authConfigured,
+  getSession,
+  login,
+  logout,
+  sessionCookie,
+} from './auth'
+import { loginPage } from './login'
+import { json, privateResponse, redirect } from './http'
 
 export function configuredIds(
   value: string | undefined,
@@ -71,9 +70,11 @@ async function metrics(
   const cache = await caches.open('droplet-metrics-v1')
   const cached = await cache.match(key)
   if (cached)
-    return new Response(cached.body, {
-      headers: { ...headers, 'Content-Type': 'application/json' },
-    })
+    return privateResponse(
+      new Response(cached.body, {
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
 
   const droplets = await Promise.all(
     ids.map((id, slot) => loadDroplet(id, slot, token, start, end)),
@@ -104,27 +105,114 @@ async function metrics(
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url)
-    if (url.pathname.startsWith('/api/')) {
-      if (request.method !== 'GET')
-        return new Response(null, {
-          status: 405,
-          headers: { ...headers, Allow: 'GET' },
-        })
-      if (url.pathname !== '/api/metrics')
-        return json({ code: 'not_found', message: 'API route not found.' }, 404)
-      try {
-        return await metrics(request, env, ctx)
-      } catch {
-        console.error(JSON.stringify({ event: 'metrics_request_failed' }))
+    if (
+      url.protocol === 'http:' &&
+      !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    ) {
+      if (request.method !== 'GET' && request.method !== 'HEAD')
         return json(
           {
-            code: 'internal_error',
-            message: 'Metrics could not be loaded. Try again shortly.',
+            code: 'https_required',
+            message: 'Use HTTPS to sign in and access the dashboard.',
           },
-          500,
+          400,
         )
-      }
+      url.protocol = 'https:'
+      return privateResponse(
+        new Response(null, { status: 308, headers: { Location: url.href } }),
+      )
     }
-    return env.ASSETS.fetch(request)
+    const methodNotAllowed = (allow: string) =>
+      json(
+        { code: 'method_not_allowed', message: 'Method not allowed.' },
+        405,
+        { Allow: allow },
+      )
+    try {
+      // Only the self-contained login page and its submission endpoints are public.
+      if (url.pathname === '/login') {
+        if (request.method === 'POST') return await login(request, env)
+        if (request.method !== 'GET' && request.method !== 'HEAD')
+          return methodNotAllowed('GET, HEAD, POST')
+        if (authConfigured(env) && (await getSession(request, env)))
+          return redirect('/')
+        const response = authConfigured(env)
+          ? loginPage()
+          : loginPage(
+              'Sign-in is not configured. Add AUTH_API_KEY to the Worker secrets.',
+              503,
+              true,
+            )
+        response.headers.set('Set-Cookie', sessionCookie(request))
+        return request.method === 'HEAD'
+          ? new Response(null, response)
+          : response
+      }
+      if (url.pathname === '/api/auth/login')
+        return request.method === 'POST'
+          ? await login(request, env)
+          : methodNotAllowed('POST')
+
+      if (!authConfigured(env))
+        return url.pathname.startsWith('/api/')
+          ? json(
+              {
+                code: 'auth_not_configured',
+                message: 'Sign-in is not configured.',
+              },
+              503,
+            )
+          : redirect('/login', sessionCookie(request))
+      const session = await getSession(request, env)
+      if (!session) {
+        const page =
+          (request.method === 'GET' || request.method === 'HEAD') &&
+          !url.pathname.startsWith('/api/') &&
+          (request.headers.get('Accept')?.includes('text/html') ||
+            !url.pathname.split('/').at(-1)?.includes('.'))
+        return page
+          ? redirect('/login', sessionCookie(request))
+          : json(
+              { code: 'unauthorized', message: 'Sign in to continue.' },
+              401,
+              { 'Set-Cookie': sessionCookie(request) },
+            )
+      }
+      if (url.pathname === '/api/auth/logout')
+        return request.method === 'POST'
+          ? await logout(request, env, session)
+          : methodNotAllowed('POST')
+      if (url.pathname === '/api/auth/session')
+        return request.method === 'GET'
+          ? json({ authenticated: true, expiresAt: session.expiresAt })
+          : methodNotAllowed('GET')
+      if (url.pathname.startsWith('/api/')) {
+        if (request.method !== 'GET') return methodNotAllowed('GET')
+        if (url.pathname !== '/api/metrics')
+          return json(
+            { code: 'not_found', message: 'API route not found.' },
+            404,
+          )
+        return await metrics(request, env, ctx)
+      }
+      // This includes HTML, JavaScript, CSS, fonts, icons, and SPA fallback paths.
+      return privateResponse(await env.ASSETS.fetch(request))
+    } catch {
+      console.error(JSON.stringify({ event: 'request_failed' }))
+      return url.pathname === '/login'
+        ? loginPage(
+            'Sign-in is temporarily unavailable. Check the session database migrations and try again.',
+            503,
+            true,
+          )
+        : json(
+            {
+              code: 'service_unavailable',
+              message:
+                'The request could not be completed. Check the session database and try again.',
+            },
+            503,
+          )
+    }
   },
 } satisfies ExportedHandler<Env>

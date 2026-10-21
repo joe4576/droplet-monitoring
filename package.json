@@ -17,7 +17,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
-    "postinstall": "wrangler types"
+    "postinstall": "wrangler types",
+    "db:migrate": "wrangler d1 migrations apply SESSIONS_DB --local --config wrangler.jsonc",
+    "db:migrate:remote": "wrangler d1 migrations apply SESSIONS_DB --remote --config wrangler.jsonc"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

@@ -2,8 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import worker, { configuredIds } from './index'
 import { TIME_RANGES, type DashboardResponse } from '../shared/types'
 
+// Metrics unit tests run after authentication. The complete auth boundary is
+// exercised separately in workerd with a real D1 database.
+vi.mock('./auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./auth')>()),
+  getSession: vi.fn(async () => ({
+    tokenHash: 'test-session-hash',
+    expiresAt: 9_999_999_999,
+  })),
+}))
+
 const ids = ['123456789', '987654321']
 const env = {
+  AUTH_API_KEY: 'test-dashboard-key',
+  SESSIONS_DB: {} as D1Database,
   DIGITALOCEAN_API_TOKEN: 'test-secret-token',
   DROPLET_IDS: ids.join(','),
   ASSETS: {

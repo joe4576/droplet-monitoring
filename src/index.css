@@ -1,5 +1,16 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+
+.logout-button {
+  font-size: 11px;
+  color: #718098;
+  gap: 6px;
+}
+@media (max-width: 680px) {
+  .logout-button > span {
+    display: none;
+  }
+}
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

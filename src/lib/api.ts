@@ -13,6 +13,13 @@ export async function fetchMetrics(
   signal: AbortSignal,
 ): Promise<DashboardResponse> {
   const response = await fetch(`/api/metrics?range=${range}`, { signal })
+  if (response.status === 401) {
+    window.location.replace('/login')
+    throw new DashboardError({
+      code: 'unauthorized',
+      message: 'Your session has expired. Sign in again.',
+    })
+  }
   if (!response.ok) {
     const body: unknown = await response.json()
     if (

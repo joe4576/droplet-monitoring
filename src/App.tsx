@@ -13,6 +13,7 @@ import {
   FlaskConical,
   Info,
   LayoutDashboard,
+  LogOut,
   RefreshCw,
   Server,
   ShieldCheck,
@@ -190,6 +191,18 @@ function App() {
                   : 'DigitalOcean monitoring'}
             </span>
             <span className="account-avatar">W</span>
+            <form action="/api/auth/logout" method="post">
+              <Button
+                variant="ghost"
+                size="sm"
+                type="submit"
+                aria-label="Sign out"
+                className="logout-button"
+              >
+                <LogOut size={14} />
+                <span>Sign out</span>
+              </Button>
+            </form>
           </div>
         </header>
         <main id="main" className="dashboard">
