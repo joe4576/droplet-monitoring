@@ -128,8 +128,21 @@ src/                     React dashboard
   components/            Metric charts
   lib/                   API client, formatters, and opt-in demo data
 worker/                  API handler and DigitalOcean integration
+  routes/                Hono routes, request validation, and HTTP responses
+  services/              Authentication, metric loading, and calculations
+  repositories/          D1 sessions and login-attempt queries
+  clients/               DigitalOcean HTTP requests
+  testing/               Worker-runtime test bundling
 migrations/              D1 session and login-attempt schema
-shared/                  Client/server types and supported ranges
+shared/                  Zod schemas, inferred client/server types, and ranges
 wrangler.jsonc           Worker, static assets, required secrets, observability
 .dev.vars.example        Local secret template
 ```
+
+Hono middleware creates services for each request. `AuthService` receives the D1 database instance and uses `SessionRepository` for all SQL. Routes handle HTTP input and output; services return typed data. The React API client validates responses with the same Zod schemas that define the shared types.
+
+Use `const` arrow functions for standalone functions. Services are classes with explicit `public` or `private` methods and return types. Use `async` only when asynchronous work requires it; in-memory calculations and validation stay synchronous. `CryptoService` provides static methods. Extract service helpers into private methods rather than defining functions or callbacks inside methods. Name methods after their result, such as `getMetricsByDropletId`, `getSessionByToken`, and `getDashboardByTimeRange`.
+
+Run independent async operations together with `Promise.all`. Await dependent operations in order. Use `Promise.allSettled` when upstream failures must preserve partial results and every request must finish.
+
+Functions that need multiple inputs take one options object, with alphabetically ordered keys. Framework callbacks keep their required signatures. Group short, logically related declarations and assignments. Keep blank lines around multiline statements and between larger class members. ESLint enforces these conventions and braces for control flow.

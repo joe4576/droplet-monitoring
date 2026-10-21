@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { lazy, Suspense, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   ArrowDownLeft,
@@ -18,22 +18,22 @@ import {
   Server,
   ShieldCheck,
   TriangleAlert,
-} from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Skeleton } from '@/components/ui/skeleton'
-import { METRICS, formatPercent } from '@/lib/metric-settings'
-import { DashboardError, fetchMetrics } from '@/lib/api'
-import { demoMetrics } from '@/lib/demo'
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { METRICS, formatPercent } from "@/lib/metric-settings";
+import { DashboardError, fetchMetrics } from "@/lib/api";
+import { demoMetrics } from "@/lib/demo";
 import {
   isTimeRange,
   TIME_RANGES,
@@ -41,68 +41,92 @@ import {
   type MetricName,
   type Metric,
   type TimeRange,
-} from '../shared/types'
-import { cn } from '@/lib/utils'
+} from "../shared/types";
+import { cn } from "@/lib/utils";
 
 const MetricChart = lazy(() =>
-  import('@/components/metric-chart').then((module) => ({
+  import("@/components/metric-chart").then((module) => ({
     default: module.MetricChart,
   })),
-)
+);
 
-const metricNames: MetricName[] = ['cpu', 'memory', 'disk']
-const docsUrl = 'https://docs.digitalocean.com/products/monitoring/'
+const metricNames: MetricName[] = ["cpu", "memory", "disk"];
+
+const docsUrl = "https://docs.digitalocean.com/products/monitoring/";
+
 const emptyMetric: Metric = {
-  points: [],
-  current: null,
   average: null,
-  peak: null,
-  sampledAt: null,
+  current: null,
   error: null,
-}
+  peak: null,
+  points: [],
+  sampledAt: null,
+};
 
-function App() {
-  const [initialEnd] = useState(() => Math.floor(Date.now() / 1000))
-  const [range, setRange] = useState<TimeRange>('1h')
+const App = () => {
+  const [initialEnd] = useState(() => Math.floor(Date.now() / 1000));
+
+  const [range, setRange] = useState<TimeRange>("1h");
+
   const [demo, setDemo] = useState(
-    () => new URLSearchParams(window.location.search).get('demo') === '1',
-  )
-  const [autoRefresh, setAutoRefresh] = useState(true)
+    () => new URLSearchParams(window.location.search).get("demo") === "1",
+  );
+
+  const [autoRefresh, setAutoRefresh] = useState(true);
+
   const query = useQuery({
-    queryKey: ['metrics', range, demo],
     queryFn: ({ signal }) =>
-      demo ? Promise.resolve(demoMetrics(range)) : fetchMetrics(range, signal),
-    refetchInterval: autoRefresh ? 60_000 : false,
-    staleTime: 30_000,
+      demo
+        ? Promise.resolve(demoMetrics(range))
+        : fetchMetrics({ range, signal }),
+    queryKey: ["metrics", range, demo],
+    refetchInterval: autoRefresh ? 60000 : false,
     retry: false,
-  })
-  const data = query.data
+    staleTime: 30000,
+  });
+
+  const data = query.data;
+
   const notConfigured =
     query.error instanceof DashboardError &&
-    query.error.code === 'not_configured'
-  const connected = !!data
-  const droplets = data?.droplets
-  const end = data?.end ?? initialEnd
-  const start = data?.start ?? end - TIME_RANGES[range].seconds
+    query.error.code === "not_configured";
+
+  const connected = !!data;
+
+  const droplets = data?.droplets;
+
+  const end = data?.end ?? initialEnd;
+
+  const start = data?.start ?? end - TIME_RANGES[range].seconds;
+
   const placeholders: DropletMetrics[] = [0, 1].map((i) => ({
+    diskGb: null,
+    issue: null,
     key: `droplet-${i + 1}`,
+    memoryMb: null,
+    metrics: { cpu: emptyMetric, disk: emptyMetric, memory: emptyMetric },
     name: `Droplet ${i + 1}`,
     region: null,
-    vcpus: null,
-    memoryMb: null,
-    diskGb: null,
     status: null,
-    issue: null,
-    metrics: { cpu: emptyMetric, memory: emptyMetric, disk: emptyMetric },
-  }))
-  const shown = droplets ?? placeholders
+    vcpus: null,
+  }));
+
+  const shown = droplets ?? placeholders;
+
   const changeDemo = (enabled: boolean) => {
-    setDemo(enabled)
-    const url = new URL(window.location.href)
-    if (enabled) url.searchParams.set('demo', '1')
-    else url.searchParams.delete('demo')
-    window.history.replaceState(null, '', url)
-  }
+    setDemo(enabled);
+
+    const url = new URL(window.location.href);
+
+    if (enabled) {
+      url.searchParams.set("demo", "1");
+    } else {
+      url.searchParams.delete("demo");
+    }
+
+    window.history.replaceState(null, "", url);
+  };
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -138,12 +162,14 @@ function App() {
               href={`#${droplet.key}`}
             >
               <span
-                className={cn('droplet-indicator', i === 1 && 'secondary')}
+                className={cn({
+                  inputs: ["droplet-indicator", i === 1 && "secondary"],
+                })}
               />
               <span>
                 {droplet.name}
                 <small>
-                  {droplet.region?.toUpperCase() ?? 'Not connected'}
+                  {droplet.region?.toUpperCase() ?? "Not connected"}
                 </small>
               </span>
             </a>
@@ -177,18 +203,20 @@ function App() {
           </div>
           <div className="topbar-right">
             <span
-              className={cn(
-                'status-dot',
-                !connected && 'disconnected',
-                demo && 'demo-dot',
-              )}
+              className={cn({
+                inputs: [
+                  "status-dot",
+                  !connected && "disconnected",
+                  demo && "demo-dot",
+                ],
+              })}
             />
             <span>
               {demo
-                ? 'Demo environment'
+                ? "Demo environment"
                 : connected
-                  ? 'DigitalOcean connected'
-                  : 'DigitalOcean monitoring'}
+                  ? "DigitalOcean connected"
+                  : "DigitalOcean monitoring"}
             </span>
             <span className="account-avatar">W</span>
             <form action="/api/auth/logout" method="post">
@@ -229,24 +257,26 @@ function App() {
           <div className="toolbar">
             <div className="toolbar-label">
               <span
-                className={cn(
-                  'status-dot',
-                  demo && 'demo-dot',
-                  !connected && 'disconnected',
-                )}
+                className={cn({
+                  inputs: [
+                    "status-dot",
+                    demo && "demo-dot",
+                    !connected && "disconnected",
+                  ],
+                })}
               />
               <span>
                 {demo
-                  ? 'Demo data'
+                  ? "Demo data"
                   : connected
-                    ? 'Live metrics'
-                    : 'Waiting for metrics'}
+                    ? "Live metrics"
+                    : "Waiting for metrics"}
               </span>
               <span className="toolbar-divider" />
               <span className="toolbar-muted">
                 {data
-                  ? `Updated ${new Date(data.fetchedAt * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Not connected'}
+                  ? `Updated ${new Date(data.fetchedAt * 1000).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`
+                  : "Not connected"}
               </span>
             </div>
             <div className="toolbar-actions">
@@ -262,7 +292,9 @@ function App() {
               <Select
                 value={range}
                 onValueChange={(value) => {
-                  if (isTimeRange(value)) setRange(value)
+                  if (isTimeRange(value)) {
+                    setRange(value);
+                  }
                 }}
               >
                 <SelectTrigger className="range-select" aria-label="Date range">
@@ -270,11 +302,13 @@ function App() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper" align="end">
-                  {Object.entries(TIME_RANGES).map(([value, item]) => (
-                    <SelectItem key={value} value={value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
+                  {Object.entries(TIME_RANGES)
+                    .sort(([, a], [, b]) => a.seconds - b.seconds)
+                    .map(([value, item]) => (
+                      <SelectItem key={value} value={value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <Button
@@ -282,13 +316,15 @@ function App() {
                 variant="outline"
                 disabled={query.isFetching}
                 onClick={() => {
-                  void query.refetch()
+                  void query.refetch();
                 }}
                 aria-label="Refresh metrics"
               >
                 <RefreshCw
                   size={15}
-                  className={cn(query.isFetching && 'animate-spin')}
+                  className={cn({
+                    inputs: [query.isFetching && "animate-spin"],
+                  })}
                 />
                 <span>Refresh</span>
               </Button>
@@ -338,14 +374,14 @@ function App() {
                 <strong>Couldn't refresh metrics.</strong>
                 <span>
                   {query.error.message}
-                  {data ? ' Showing the last successful results.' : ''}
+                  {data ? " Showing the last successful results." : ""}
                 </span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  void query.refetch()
+                  void query.refetch();
                 }}
               >
                 Try again
@@ -354,14 +390,17 @@ function App() {
           )}
           <section className="overview" aria-label="Fleet overview">
             {metricNames.map((name) => {
-              const { label, Icon, color } = METRICS[name]
+              const { Icon, color, label } = METRICS[name];
+
               const values =
                 droplets
                   ?.map((droplet) => droplet.metrics[name].current)
-                  .filter((value): value is number => value !== null) ?? []
+                  .filter((value): value is number => value !== null) ?? [];
+
               const average = values.length
                 ? values.reduce((sum, value) => sum + value, 0) / values.length
-                : null
+                : null;
+
               return (
                 <Card key={name} className="overview-card">
                   <div className="overview-top">
@@ -376,7 +415,7 @@ function App() {
                   </div>
                   <div className="usage-track">
                     <span
-                      style={{ width: `${average ?? 0}%`, background: color }}
+                      style={{ background: color, width: `${average ?? 0}%` }}
                     />
                   </div>
                   <div className="overview-caption">
@@ -384,7 +423,7 @@ function App() {
                     <span className="muted">Latest samples</span>
                   </div>
                 </Card>
-              )
+              );
             })}
           </section>
           <div className="section-heading">
@@ -404,7 +443,11 @@ function App() {
               >
                 <div className="droplet-heading">
                   <div className="droplet-name-group">
-                    <span className={cn('server-icon', i === 1 && 'secondary')}>
+                    <span
+                      className={cn({
+                        inputs: ["server-icon", i === 1 && "secondary"],
+                      })}
+                    >
                       <Server size={21} />
                     </span>
                     <div>
@@ -412,16 +455,18 @@ function App() {
                         <h2 id={`${droplet.key}-title`}>{droplet.name}</h2>
                         <Badge
                           variant="outline"
-                          className={cn(
-                            'droplet-status',
-                            droplet.status === 'active' && 'is-active',
-                          )}
+                          className={cn({
+                            inputs: [
+                              "droplet-status",
+                              droplet.status === "active" && "is-active",
+                            ],
+                          })}
                         >
                           <span />
                           {droplet.status
                             ? droplet.status.charAt(0).toUpperCase() +
                               droplet.status.slice(1)
-                            : 'Not connected'}
+                            : "Not connected"}
                         </Badge>
                       </div>
                       <div className="droplet-specs">
@@ -429,20 +474,20 @@ function App() {
                           <>
                             <span>{droplet.region.toUpperCase()}</span>
                             <i />
-                            {droplet.vcpus ?? '—'} vCPUs
+                            {droplet.vcpus ?? "—"} vCPUs
                             <i />
                             {droplet.memoryMb === null
-                              ? '—'
-                              : droplet.memoryMb / 1024}{' '}
+                              ? "—"
+                              : droplet.memoryMb / 1024}{" "}
                             GB Memory
                             <i />
-                            {droplet.diskGb ?? '—'} GB Disk
+                            {droplet.diskGb ?? "—"} GB Disk
                           </>
                         ) : (
                           <span>
                             {query.isLoading
-                              ? 'Loading Droplet details…'
-                              : 'Droplet details will appear after connection'}
+                              ? "Loading Droplet details…"
+                              : "Droplet details will appear after connection"}
                           </span>
                         )}
                       </div>
@@ -450,12 +495,11 @@ function App() {
                   </div>
                   <div className="droplet-label">
                     <span
-                      className={cn(
-                        'droplet-indicator',
-                        i === 1 && 'secondary',
-                      )}
+                      className={cn({
+                        inputs: ["droplet-indicator", i === 1 && "secondary"],
+                      })}
                     />
-                    DROPLET {String(i + 1).padStart(2, '0')}
+                    DROPLET {String(i + 1).padStart(2, "0")}
                   </div>
                 </div>
                 {droplet.issue && (
@@ -490,18 +534,18 @@ function App() {
             <span>
               <Check size={13} />
               {demo
-                ? 'Sample data for preview purposes'
-                : 'Metrics retrieved through the DigitalOcean Monitoring API'}
+                ? "Sample data for preview purposes"
+                : "Metrics retrieved through the DigitalOcean Monitoring API"}
             </span>
             <div>
               <span>
                 <ArrowDownLeft size={13} />
                 {autoRefresh
-                  ? 'Refreshes every 60 seconds'
-                  : 'Auto-refresh paused'}
+                  ? "Refreshes every 60 seconds"
+                  : "Auto-refresh paused"}
               </span>
               <button onClick={() => changeDemo(!demo)}>
-                {demo ? 'Exit demo' : 'Try demo data'}
+                {demo ? "Exit demo" : "Try demo data"}
                 <ArrowUpRight size={12} />
               </button>
             </div>
@@ -509,7 +553,7 @@ function App() {
         </main>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;

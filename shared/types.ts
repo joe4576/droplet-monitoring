@@ -1,54 +1,39 @@
-export const TIME_RANGES = {
-  '1h': { label: 'Last 1 hour', seconds: 3_600 },
-  '6h': { label: 'Last 6 hours', seconds: 21_600 },
-  '1d': { label: 'Last 1 day', seconds: 86_400 },
-  '7d': { label: 'Last 7 days', seconds: 604_800 },
-  '14d': { label: 'Last 14 days', seconds: 1_209_600 },
-} as const
+import type { z } from "zod";
+import {
+  timeRangeSchema,
+  type apiErrorSchema,
+  type dashboardResponseSchema,
+  type dropletMetricsSchema,
+  type loginSchema,
+  type metricNameSchema,
+  type metricPointSchema,
+  type metricSchema,
+  type metricsQuerySchema,
+  type sessionResponseSchema,
+} from "./schemas";
 
-export type TimeRange = keyof typeof TIME_RANGES
-export type MetricName = 'cpu' | 'memory' | 'disk'
+export { TIME_RANGES } from "./schemas";
 
-export interface MetricPoint {
-  timestamp: number
-  value: number | null
-}
+export type TimeRange = z.infer<typeof timeRangeSchema>;
 
-export interface Metric {
-  points: MetricPoint[]
-  current: number | null
-  average: number | null
-  peak: number | null
-  sampledAt: number | null
-  error: string | null
-}
+export type MetricName = z.infer<typeof metricNameSchema>;
 
-export interface DropletMetrics {
-  // An opaque slot, never the secret Droplet ID.
-  key: string
-  name: string
-  region: string | null
-  vcpus: number | null
-  memoryMb: number | null
-  diskGb: number | null
-  status: string | null
-  issue: string | null
-  metrics: Record<MetricName, Metric>
-}
+export type MetricPoint = z.infer<typeof metricPointSchema>;
 
-export interface DashboardResponse {
-  droplets: DropletMetrics[]
-  range: TimeRange
-  start: number
-  end: number
-  fetchedAt: number
-}
+export type Metric = z.infer<typeof metricSchema>;
 
-export interface ApiError {
-  code: string
-  message: string
-}
+export type DropletMetrics = z.infer<typeof dropletMetricsSchema>;
 
-export function isTimeRange(value: string): value is TimeRange {
-  return Object.hasOwn(TIME_RANGES, value)
-}
+export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
+
+export type ApiError = z.infer<typeof apiErrorSchema>;
+
+export type Login = z.infer<typeof loginSchema>;
+
+export type MetricsQuery = z.infer<typeof metricsQuerySchema>;
+
+export type SessionResponse = z.infer<typeof sessionResponseSchema>;
+
+export const isTimeRange = (value: string): value is TimeRange => {
+  return timeRangeSchema.safeParse(value).success;
+};

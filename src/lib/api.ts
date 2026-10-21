@@ -1,38 +1,47 @@
-import type { ApiError, DashboardResponse, TimeRange } from '../../shared/types'
+import type {
+  ApiError,
+  DashboardResponse,
+  TimeRange,
+} from "../../shared/types";
+import { apiErrorSchema, dashboardResponseSchema } from "../../shared/schemas";
 
 export class DashboardError extends Error {
-  readonly code: string
+  readonly code: string;
+
   constructor(error: ApiError) {
-    super(error.message)
-    this.code = error.code
+    super(error.message);
+
+    this.code = error.code;
   }
 }
 
-export async function fetchMetrics(
-  range: TimeRange,
-  signal: AbortSignal,
-): Promise<DashboardResponse> {
-  const response = await fetch(`/api/metrics?range=${range}`, { signal })
+export const fetchMetrics = async ({
+  range,
+  signal,
+}: {
+  range: TimeRange;
+  signal: AbortSignal;
+}): Promise<DashboardResponse> => {
+  const response = await fetch(`/api/metrics?range=${range}`, { signal });
+
   if (response.status === 401) {
-    window.location.replace('/login')
+    window.location.replace("/login");
+
     throw new DashboardError({
-      code: 'unauthorized',
-      message: 'Your session has expired. Sign in again.',
-    })
+      code: "unauthorized",
+      message: "Your session has expired. Sign in again.",
+    });
   }
+
   if (!response.ok) {
-    const body: unknown = await response.json()
-    if (
-      body &&
-      typeof body === 'object' &&
-      'code' in body &&
-      'message' in body &&
-      typeof body.code === 'string' &&
-      typeof body.message === 'string'
-    ) {
-      throw new DashboardError({ code: body.code, message: body.message })
+    const parsed = apiErrorSchema.safeParse(await response.json());
+
+    if (parsed.success) {
+      throw new DashboardError(parsed.data);
     }
-    throw new Error('Metrics could not be loaded. Try again shortly.')
+
+    throw new Error("Metrics could not be loaded. Try again shortly.");
   }
-  return response.json() as Promise<DashboardResponse>
-}
+
+  return dashboardResponseSchema.parse(await response.json());
+};
