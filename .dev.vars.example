@@ -1,0 +1,4 @@
+# Copy to .dev.vars and replace these values. Never commit .dev.vars.
+DIGITALOCEAN_API_TOKEN="replace-with-your-personal-access-token"
+# Exactly two distinct Droplet IDs, separated by a comma.
+DROPLET_IDS="123456789,987654321"
