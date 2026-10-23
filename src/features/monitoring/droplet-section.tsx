@@ -1,13 +1,9 @@
-import { lazy, Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { METRIC_NAMES } from "@/lib/metric-settings";
 import { cn } from "@/lib/utils";
+import { MetricChart } from "./metric-chart";
 import type { DropletMetrics, TimeRange } from "../../../shared/types";
-
-const MetricChart = lazy(() =>
-  import("./metric-chart").then((module) => ({ default: module.MetricChart })),
-);
 
 const ChartSkeleton = () => <Skeleton className="h-80 rounded-xl" />;
 
@@ -76,16 +72,15 @@ export const DropletSection = ({
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {METRIC_NAMES.map((name) => (
-          <Suspense fallback={<ChartSkeleton />} key={name}>
-            <MetricChart
-              dropletName={droplet.name}
-              end={end}
-              metric={droplet.metrics[name]}
-              name={name}
-              range={range}
-              start={start}
-            />
-          </Suspense>
+          <MetricChart
+            dropletName={droplet.name}
+            end={end}
+            key={name}
+            metric={droplet.metrics[name]}
+            name={name}
+            range={range}
+            start={start}
+          />
         ))}
       </div>
     </section>
