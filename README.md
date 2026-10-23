@@ -66,7 +66,7 @@ Install and run [DigitalOcean's metrics agent](https://docs.digitalocean.com/pro
 - CPU, memory, and root-disk charts for each Droplet, with latest, average, and peak usage.
 - Shared date-range selector: 1 hour, 6 hours, 1 day, 7 days, or 14 days.
 - Auto-refresh every 60 seconds, with a pause switch and manual refresh.
-- Fleet overview showing the unweighted average of the two Droplets' latest percentages.
+- Dark-only shadcn theme with Dark Reader disabled.
 - Local timezone labels, hover tooltips, reporting-gap indicators, and responsive mobile layouts.
 - Independent chart failures: a missing memory metric does not hide CPU or disk data.
 
@@ -125,7 +125,8 @@ npm run deploy        # Build and deploy using Wrangler
 ```text
 src/                     React dashboard
   components/ui/         shadcn/ui source components
-  components/            Metric charts
+  components/            Shared layout, page header, and feedback
+  features/monitoring/   Dashboard, controls, droplet sections, charts, and query hook
   lib/                   API client, formatters, and opt-in demo data
 worker/                  API handler and DigitalOcean integration
   routes/                Hono routes, request validation, and HTTP responses

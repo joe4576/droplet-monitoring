@@ -19,11 +19,18 @@
       "binding": "SESSIONS_DB",
       "database_name": "droplet-monitoring-sessions",
       "migrations_dir": "migrations",
+      "database_id": "49817ef1-057b-48e9-9e1a-3b7f280e1cd0",
     },
   ],
   "observability": {
     "enabled": true,
-    "logs": { "enabled": true, "head_sampling_rate": 1 },
-    "traces": { "enabled": true, "head_sampling_rate": 0.01 },
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01,
+    },
   },
 }
